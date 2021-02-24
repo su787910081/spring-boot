@@ -17,9 +17,10 @@
 	</properties>
 	<modules>
 		<!-- Deployment tests are slow so don't include by default -->
-		<module>spring-boot-smoke-tests-invoker</module>
-		<module>spring-boot-integration-tests</module>
+<!--		<module>spring-boot-smoke-tests-invoker</module>-->
+<!--		<module>spring-boot-integration-tests</module>-->
 		<module>test-demo-suyh-01</module>
+		<module>test-demo-suyh-02-bean</module>
 	</modules>
 	<profiles>
 		<!-- M2E profile to allow easy import into Eclipse -->
