@@ -268,8 +268,21 @@ public class SpringApplication {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 设置servlet环境，判断是REACTIVE 还是SERVLET，在后面会通过它初始化对应的环境
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		/*
+		 * 1. getSpringFactoriesInstances() 方法会加载META-INF/spring.factories文件
+		 * 2. 获取ApplicationContextInitializer，也是在这里开始首次加载spring.factories文件
+		 * 3. ApplicationContextInitializer是spring组件spring-context组件中的一个接口，
+		 *
+		 * 主要是spring ioc容器刷新之前的一个回调接口，用于处于自定义逻辑
+		 * 具体的位置：org.springframework.boot:spring-boot 模块
+		 * META-INF/spring.factories 中的 "Application Listeners"
+		 * 这些监听器会贯穿springBoot整个生命周期
+		 * 博客上说还有一个"org.springframework.boot.autoconfigure.BackgroundPreinitializer"
+		 */
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+		// 获取监听器，这里是第二次加载spring.factories文件
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
@@ -300,22 +313,34 @@ public class SpringApplication {
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		// java.awt.headless是J2SE的一种模式用于在缺少显示屏、键盘或者鼠标时的系统配置，
+		// 很多监控工具如jconsole 需要将该值设置为true，系统变量默认为true
 		configureHeadlessProperty();
+		// 获取spring.factories中的监听器变量，args为指定的参数数组，默认为当前类SpringApplication
+		// 第一步：获取并启动监听器
+		// 1) 获取监听器
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		// 2) 启动监听器
 		listeners.starting();
 		try {
 			// 构建应用参数
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
-			// 准备应用环境
+			// 第二步：构造容器环境
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
+			// 设置需要忽略的bean
 			configureIgnoreBeanInfo(environment);
+			// 打印banner
 			Banner printedBanner = printBanner(environment);
-			// 创建应用上下文
+			// 第三步：创建容器(应用上下文)
 			context = createApplicationContext();
+			// 第四步：实例化SpringBootExceptionReporter.class，用来支持报告关于启动的错误
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
+			// 第五步：准备容器
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+			// 第六步：刷新容器
 			refreshContext(context);
+			// 第七步：刷新容器后的扩展接口
 			afterRefresh(context, applicationArguments);
 			stopWatch.stop();
 			if (this.logStartupInfo) {
@@ -342,9 +367,14 @@ public class SpringApplication {
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		// 获取对应的ConfigurableEnvironment，跟进去
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
-		// 配置环境
+		// 配置环境，系统属性与自定义的配置属性
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
+		// 发布环境已准备事件，这是第二次发布事件(系统环境初始化完成的事件)
+		// 我们可以到 SimpleApplicationEventMulticaster.multicastEvent(ApplicationEvent, ResolvableType)
+		// 去看下根据类型能获取到哪些监听器。
+		// 其中有一个非常核心的监听器：ConfigFileApplicationListener，主要用来处理项目配置。
 		ConfigurationPropertySources.attach(environment);
 		listeners.environmentPrepared(environment);
 		bindToSpringApplication(environment);
@@ -416,6 +446,14 @@ public class SpringApplication {
 
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+		// getSpringFactoriesInstances() 将当前对象作为参数，该方法用来获取spring.factories对应的监听器：
+		/*
+		 * spring.factories 文件中摘录的
+		 *
+		 * # Run Listeners
+		 * org.springframework.boot.SpringApplicationRunListener=\
+		 * org.springframework.boot.context.event.EventPublishingRunListener
+		 */
 		return new SpringApplicationRunListeners(logger,
 				getSpringFactoriesInstances(SpringApplicationRunListener.class, types, this, args));
 	}
@@ -428,20 +466,27 @@ public class SpringApplication {
 		ClassLoader classLoader = getClassLoader();
 		// Use names and ensure unique to protect against duplicates
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
+		// spring.factories
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
 		AnnotationAwareOrderComparator.sort(instances);
 		return instances;
 	}
 
+	/*
+	 * 整个 springBoot 框架中获取factories的方式统一如下
+	 */
 	@SuppressWarnings("unchecked")
 	private <T> List<T> createSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes,
 			ClassLoader classLoader, Object[] args, Set<String> names) {
 		List<T> instances = new ArrayList<>(names.size());
 		for (String name : names) {
 			try {
+				// 装载class文件到内存
 				Class<?> instanceClass = ClassUtils.forName(name, classLoader);
 				Assert.isAssignable(type, instanceClass);
 				Constructor<?> constructor = instanceClass.getDeclaredConstructor(parameterTypes);
+				// 主要通过反射创建实例
+				// 这里会触发 EventPublishingRunListener 的构造函数，转过去看一下。
 				T instance = (T) BeanUtils.instantiateClass(constructor, args);
 				instances.add(instance);
 			}
@@ -453,6 +498,11 @@ public class SpringApplication {
 	}
 
 	private ConfigurableEnvironment getOrCreateEnvironment() {
+		// Environment 接口提供了4种实现方式
+		// StandardEnvironment(普通程序)
+		// StandardServletEnvironment(Web程序)
+		// MockEnvironment(测试程序的环境)
+		// StandardReactiveWebEnvironment(响应式web环境)
 		if (this.environment != null) {
 			return this.environment;
 		}
@@ -482,9 +532,10 @@ public class SpringApplication {
 			ConversionService conversionService = ApplicationConversionService.getSharedInstance();
 			environment.setConversionService((ConfigurableConversionService) conversionService);
 		}
-		// 配置属性源
+		// 配置系统属性到 AbstractEnvironment.propertyResolver 属性中
 		configurePropertySources(environment, args);
-		// 配置profile
+		// 配置profile 激活的属性到 AbstractEnvironment.propertyResolver 属性中
+		// 这里应该就是aplication* 里面配置的属性。
 		configureProfiles(environment, args);
 	}
 

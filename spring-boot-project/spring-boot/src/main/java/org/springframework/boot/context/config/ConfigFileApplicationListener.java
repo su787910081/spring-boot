@@ -108,7 +108,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	private static final String DEFAULT_PROPERTIES = "defaultProperties";
 
 	// Note the order is from least to most specific (last one wins)
-	private static final String DEFAULT_SEARCH_LOCATIONS = "classpath:/,classpath:/config/,file:./,file:./config/";
+	private static final String DEFAULT_SEARCH_LOCATIONS= "classpath:/,classpath:/config/,file:./,file:./config/";
 
 	private static final String DEFAULT_NAMES = "application";
 
@@ -182,6 +182,22 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	}
 
 	private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
+		/*
+		 * 首先还是会去读spring.factories 文件，获取的处理类有以下四种：
+		 *
+		 * # Environment Post Processors
+		 * org.springframework.boot.env.EnvironmentPostProcessor=\ # @FunctionalInterface函数式接口
+		 * org.springframework.boot.cloud.CloudFoundryVcapEnvironmentPostProcessor,\ # 为springCloud提供的扩展类
+		 * org.springframework.boot.env.SpringApplicationJsonEnvironmentPostProcessor,\ # 支持json环境变量
+		 * 	# springBoo2提供的一个包装类，主要将`StandardServletEnvironment`包装成
+		 * 	# `SystemEnvironmentPropertySourceEnvironmentPostProcessor`对象
+		 * org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor,\
+		 * org.springframework.boot.reactor.DebugAgentEnvironmentPostProcessor
+		 *
+		 * 在执行完上述三个监听器流程后，ConfigFileApplicationListener 会执行该类本身的逻辑。
+		 * 由其内部类Loader加载项目制定路径下的配置文件：
+		 * DEFAULT_SEARCH_LOCATIONS= "classpath:/,classpath:/config/,file:./,file:./config/";
+		 */
 		List<EnvironmentPostProcessor> postProcessors = loadPostProcessors();
 		postProcessors.add(this);
 		AnnotationAwareOrderComparator.sort(postProcessors);

@@ -56,6 +56,7 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 		this.args = args;
 		this.initialMulticaster = new SimpleApplicationEventMulticaster();
 		for (ApplicationListener<?> listener : application.getListeners()) {
+			// 重点看下addApplicationListener() 方法
 			this.initialMulticaster.addApplicationListener(listener);
 		}
 	}
@@ -67,6 +68,24 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	@Override
 	public void starting() {
+		// 关键代码，这里是创建application启动事件`ApplicationStartingEvent`
+		/*
+		 * EventPublishingRunListener 这个是springBoot框架中最早执行的监听器，
+		 * 在该监听器执行started()方法时，会继续发布事件，也就是事件传递。
+		 * 这种实现主要还是基于spring的事件机制。
+		 *
+		 * 继续跟进SimpleApplicationEventMulticaster，有个核心方法
+		 * org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(ApplicationEvent, ResolvableType)
+		 *
+		 * 在这个方法(multicastEvent)中会根据事件类型 ApplicationStartingEvent 获取对应的监听器，在容器启动之后执行响应的动作
+		 * 有4 种监听器: LoggingApplicationListener、BackgroundPreinitializer、
+		 * DelegatingApplicationListener、LiquibaseServiceLocatorApplicationListener
+		 *
+		 * 这是springBoot启动过程中，第一处根据类型，执行监听器的地方。
+		 * 根据发布的事件类型从上述10种监听器中选择对应的监听器进行事件发布，当然如果继承了 springCloud或者别的框架，就不止10个了。
+		 *
+		 * LoggingApplicationListener.onApplicationEvent() 日志执行监听器。
+		 */
 		this.initialMulticaster.multicastEvent(new ApplicationStartingEvent(this.application, this.args));
 	}
 
