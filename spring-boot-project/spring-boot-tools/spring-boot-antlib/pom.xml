@@ -66,70 +66,71 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>antunit</id>
-						<phase>integration-test</phase>
-						<configuration>
-							<target>
-								<mkdir dir="${project.build.directory}/it" />
-								<copy todir="${project.build.directory}/it">
-									<fileset dir="${project.basedir}/src/it" />
-								</copy>
-								<path id="taskpath">
-									<fileset dir="${project.build.directory}"
-										includes="${project.build.finalName}.${project.packaging}" />
-								</path>
-								<pathconvert refid="taskpath" />
-								<typedef resource="org/springframework/boot/ant/antlib.xml" classpathref="taskpath" uri="antlib:org.springframework.boot.ant" />
-								<property name="build.compiler" value="${antBuildCompiler}" />
-								<antunit xmlns="antlib:org.apache.ant.antunit">
-									<propertyset>
-										<propertyref name="build.compiler" />
-									</propertyset>
-									<plainlistener />
-									<fileset xmlns="antlib:org.apache.tools.ant" dir="${project.build.directory}/it"
-										includes="**/build.xml" />
-								</antunit>
-							</target>
-							<skip>${skipTests}</skip>
-						</configuration>
-						<goals>
-							<goal>run</goal>
-						</goals>
-					</execution>
-				</executions>
-				<dependencies>
-					<dependency>
-						<groupId>org.apache.ant</groupId>
-						<artifactId>ant</artifactId>
-						<version>${ant.version}</version>
-					</dependency>
-					<dependency>
-						<groupId>org.apache.ant</groupId>
-						<artifactId>ant-launcher</artifactId>
-						<version>${ant.version}</version>
-					</dependency>
-					<dependency>
-						<groupId>org.apache.ant</groupId>
-						<artifactId>ant-antunit</artifactId>
-						<version>1.3</version>
-					</dependency>
-					<dependency>
-						<groupId>org.apache.ivy</groupId>
-						<artifactId>ivy</artifactId>
-						<version>2.4.0</version>
-					</dependency>
-					<dependency>
-						<groupId>org.eclipse.jdt.core.compiler</groupId>
-						<artifactId>ecj</artifactId>
-						<version>4.6.1</version>
-					</dependency>
-				</dependencies>
-			</plugin>
+			<!-- 报红，注释掉。暂时没影响到。 -->
+<!--			<plugin>-->
+<!--				<groupId>org.apache.maven.plugins</groupId>-->
+<!--				<artifactId>maven-antrun-plugin</artifactId>-->
+<!--				<executions>-->
+<!--					<execution>-->
+<!--						<id>antunit</id>-->
+<!--						<phase>integration-test</phase>-->
+<!--						<configuration>-->
+<!--							<target>-->
+<!--								<mkdir dir="${project.build.directory}/it" />-->
+<!--								<copy todir="${project.build.directory}/it">-->
+<!--									<fileset dir="${project.basedir}/src/it" />-->
+<!--								</copy>-->
+<!--								<path id="taskpath">-->
+<!--									<fileset dir="${project.build.directory}"-->
+<!--										includes="${project.build.finalName}.${project.packaging}" />-->
+<!--								</path>-->
+<!--								<pathconvert refid="taskpath" />-->
+<!--								<typedef resource="org/springframework/boot/ant/antlib.xml" classpathref="taskpath" uri="antlib:org.springframework.boot.ant" />-->
+<!--								<property name="build.compiler" value="${antBuildCompiler}" />-->
+<!--								<antunit xmlns="antlib:org.apache.ant.antunit">-->
+<!--									<propertyset>-->
+<!--										<propertyref name="build.compiler" />-->
+<!--									</propertyset>-->
+<!--									<plainlistener />-->
+<!--									<fileset xmlns="antlib:org.apache.tools.ant" dir="${project.build.directory}/it"-->
+<!--										includes="**/build.xml" />-->
+<!--								</antunit>-->
+<!--							</target>-->
+<!--							<skip>${skipTests}</skip>-->
+<!--						</configuration>-->
+<!--						<goals>-->
+<!--							<goal>run</goal>-->
+<!--						</goals>-->
+<!--					</execution>-->
+<!--				</executions>-->
+<!--				<dependencies>-->
+<!--					<dependency>-->
+<!--						<groupId>org.apache.ant</groupId>-->
+<!--						<artifactId>ant</artifactId>-->
+<!--						<version>${ant.version}</version>-->
+<!--					</dependency>-->
+<!--					<dependency>-->
+<!--						<groupId>org.apache.ant</groupId>-->
+<!--						<artifactId>ant-launcher</artifactId>-->
+<!--						<version>${ant.version}</version>-->
+<!--					</dependency>-->
+<!--					<dependency>-->
+<!--						<groupId>org.apache.ant</groupId>-->
+<!--						<artifactId>ant-antunit</artifactId>-->
+<!--						<version>1.3</version>-->
+<!--					</dependency>-->
+<!--					<dependency>-->
+<!--						<groupId>org.apache.ivy</groupId>-->
+<!--						<artifactId>ivy</artifactId>-->
+<!--						<version>2.4.0</version>-->
+<!--					</dependency>-->
+<!--					<dependency>-->
+<!--						<groupId>org.eclipse.jdt.core.compiler</groupId>-->
+<!--						<artifactId>ecj</artifactId>-->
+<!--						<version>4.6.1</version>-->
+<!--					</dependency>-->
+<!--				</dependencies>-->
+<!--			</plugin>-->
 		</plugins>
 	</build>
 	<profiles>
