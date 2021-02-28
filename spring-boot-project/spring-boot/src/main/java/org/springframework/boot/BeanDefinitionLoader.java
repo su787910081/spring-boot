@@ -125,12 +125,14 @@ class BeanDefinitionLoader {
 	int load() {
 		int count = 0;
 		for (Object source : this.sources) {
+			// 跟进
 			count += load(source);
 		}
 		return count;
 	}
 
 	private int load(Object source) {
+		// 继续跟进这里的load() 方法
 		Assert.notNull(source, "Source must not be null");
 		if (source instanceof Class<?>) {
 			return load((Class<?>) source);
@@ -148,12 +150,16 @@ class BeanDefinitionLoader {
 	}
 
 	private int load(Class<?> source) {
+		/*
+		 * 这里的代码中启动类被加载到 beanDefinitionMap中，后续该启动类将作为开启自动化配置的入口
+		 */
 		if (isGroovyPresent() && GroovyBeanDefinitionSource.class.isAssignableFrom(source)) {
 			// Any GroovyLoaders added in beans{} DSL can contribute beans here
 			GroovyBeanDefinitionSource loader = BeanUtils.instantiateClass(source, GroovyBeanDefinitionSource.class);
 			load(loader);
 		}
 		if (isComponent(source)) {
+			// 以注解的方式，将启动类bean信息存入beanDefinitionMap
 			this.annotatedReader.register(source);
 			return 1;
 		}

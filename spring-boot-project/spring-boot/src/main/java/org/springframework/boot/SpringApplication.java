@@ -334,11 +334,14 @@ public class SpringApplication {
 			// 第三步：创建容器(应用上下文)
 			context = createApplicationContext();
 			// 第四步：实例化SpringBootExceptionReporter.class，用来支持报告关于启动的错误
+			// 这也是到spring.factories 中获取配置好的对应类
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
 			// 第五步：准备容器
+			// 这一步主要是在容器刷新之前的准备动作。包含一个非常关键的操作：将启动类注入容器，为后续开启自动化配置奠定基础。
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
 			// 第六步：刷新容器
+			// 执行到这里，springBoot相关的处理工作已经结束，接下的工作就交给了spring。
 			refreshContext(context);
 			// 第七步：刷新容器后的扩展接口
 			afterRefresh(context, applicationArguments);
@@ -399,17 +402,24 @@ public class SpringApplication {
 
 	private void prepareContext(ConfigurableApplicationContext context, ConfigurableEnvironment environment,
 			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
+		// 设置容器环境，包括各种变量
 		context.setEnvironment(environment);
+		// 执行容器后置处理
+		// 跟进
 		postProcessApplicationContext(context);
+		// 执行容器中的ApplicationContextInitializer（包括 spring.factories和自定义的实例）
 		applyInitializers(context);
+		// 发送容器已经准备好的事件，通知各监听器
 		listeners.contextPrepared(context);
 		if (this.logStartupInfo) {
 			logStartupInfo(context.getParent() == null);
 			logStartupProfileInfo(context);
 		}
 		// Add boot specific singleton beans
+		// 注册启动参数bean，这里将容器指定的参数封装成bean，注入容器
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
+		// 设置banner
 		if (printedBanner != null) {
 			beanFactory.registerSingleton("springBootBanner", printedBanner);
 		}
@@ -421,9 +431,15 @@ public class SpringApplication {
 			context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor());
 		}
 		// Load the sources
+		// 获取我们的启动类指定的参数，可以是多个。
+		// suyh - 这里拿到的就有我们的main 方法所在的启动类，这里是一个集合，估计是run() 方法可以传多个吧。
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
+		// 加载我们的启动类，将启动类注入容器
+		// 重点，跟进
 		load(context, sources.toArray(new Object[0]));
+		// 发布容器已加载事件。
+		// 通知监听器，容器已准备就绪
 		listeners.contextLoaded(context);
 	}
 
@@ -654,6 +670,8 @@ public class SpringApplication {
 	 * @param context the application context
 	 */
 	protected void postProcessApplicationContext(ConfigurableApplicationContext context) {
+		// 这里默认不执行任何逻辑，因为beanNameGenerator和resourceLoader默认为空。
+		// 之所以这样做，是springBoot留给我们的扩展处理方式，类似于这样的扩展，spring中也有很多。
 		if (this.beanNameGenerator != null) {
 			context.getBeanFactory().registerSingleton(AnnotationConfigUtils.CONFIGURATION_BEAN_NAME_GENERATOR,
 					this.beanNameGenerator);
@@ -735,6 +753,13 @@ public class SpringApplication {
 	 * @param sources the sources to load
 	 */
 	protected void load(ApplicationContext context, Object[] sources) {
+		/*
+		 * 这里会将我们的启动类加载spring容器beanDefinitionMap中，为后续springBoot 自动化配置奠定基础，
+		 * springBoot为我们提供的各种注解配置也与此有关。
+		 *
+		 * 这里参数即为我们项目启动时传递的参数：SpringApplication.run(SpringBootApplication.class, args);
+		 * 由于我们指定了启动类，所以上面也就是加载启动类到容器。
+		 */
 		if (logger.isDebugEnabled()) {
 			logger.debug("Loading source " + StringUtils.arrayToCommaDelimitedString(sources));
 		}
@@ -748,6 +773,7 @@ public class SpringApplication {
 		if (this.environment != null) {
 			loader.setEnvironment(this.environment);
 		}
+		// 跟进
 		loader.load();
 	}
 
