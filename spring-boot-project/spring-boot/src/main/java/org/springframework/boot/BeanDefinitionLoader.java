@@ -134,15 +134,21 @@ class BeanDefinitionLoader {
 	private int load(Object source) {
 		// 继续跟进这里的load() 方法
 		Assert.notNull(source, "Source must not be null");
+		// 如果是class类型，启用注解类型
 		if (source instanceof Class<?>) {
+			// 一般这里就是main 方法所在的类
+			// 跟进
 			return load((Class<?>) source);
 		}
+		// 如果是resource类型，启用xml解析
 		if (source instanceof Resource) {
 			return load((Resource) source);
 		}
+		// 如果是package类型，启用扫描包，例如：@ComponentScan
 		if (source instanceof Package) {
 			return load((Package) source);
 		}
+		// 如果是字符串类型，直接加载
 		if (source instanceof CharSequence) {
 			return load((CharSequence) source);
 		}
